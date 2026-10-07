@@ -66,7 +66,7 @@ function ProtectedLayout() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/pos" element={<PosPage />} />
-          <Route path="/bills/new" element={<CreateBillPage />} />
+          <Route path="/create-bill" element={<CreateBillPage />} />
           <Route path="/bills" element={<BillsPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />

@@ -1,7 +1,7 @@
 export const PAGE_PATHS = {
   Dashboard: "/",
   POS: "/pos",
-  "New Bill": "/bills/new",
+  "Create Bill": "/create-bill",
   Bills: "/bills",
   Deliveries: "/coming-soon/deliveries",
   "Order Planner": "/coming-soon/order-planner",

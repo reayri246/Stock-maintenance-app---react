@@ -49,7 +49,7 @@ function Sidebar({
           icon: ShoppingCart,
         },
         {
-          name: "New Bill",
+          name: "Create Bill",
           icon: Receipt,
         },
         {
