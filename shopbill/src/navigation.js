@@ -15,8 +15,8 @@ export const PAGE_PATHS = {
   Expenses: "/expenses",
   Cashup: "/coming-soon/cashup",
   Reports: "/coming-soon/reports",
-  Users: "/coming-soon/users",
-  "Roles & Permissions": "/coming-soon/roles-permissions",
+  Users: "/users",
+  "Roles & Permissions": "/roles-permissions",
   Settings: "/coming-soon/settings",
 };
 

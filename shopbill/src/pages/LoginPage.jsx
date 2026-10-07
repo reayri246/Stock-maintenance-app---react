@@ -4,7 +4,7 @@ import { loginUser } from "../api/auth";
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "admin@shopbill.com", password: "admin123" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

@@ -233,20 +233,10 @@ const defaultAdmin = db
   .prepare("SELECT * FROM users WHERE email = ?")
   .get("admin@shopbill.com");
 
-const adminPasswordHash = bcrypt.hashSync("admin123", 10);
-
-if (!defaultAdmin) {
-  db.prepare(
-    "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)"
-  ).run(
-    "Shop Admin",
-    "admin@shopbill.com",
-    adminPasswordHash,
-    "admin"
-  );
-} else if (!bcrypt.compareSync("admin123", defaultAdmin.password)) {
-  db.prepare("UPDATE users SET password = ? WHERE email = ?").run(adminPasswordHash, "admin@shopbill.com");
+if (defaultAdmin) {
+  db.prepare("DELETE FROM users WHERE email = ?").run("admin@shopbill.com");
 }
+
 
 const categoryCount = db.prepare("SELECT COUNT(*) AS count FROM categories").get().count;
 if (categoryCount === 0) {

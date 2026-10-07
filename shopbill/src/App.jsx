@@ -13,6 +13,8 @@ import ExpensesPage from "./pages/ExpensesPage";
 import PosPage from "./pages/PosPage";
 import CreateBillPage from "./pages/CreateBillPage";
 import BillsPage from "./pages/BillsPage";
+import StaffPermissionsPage from "./pages/StaffPermissionsPage";
+import ProfilePage from "./pages/ProfilePage";
 import { getPageName } from "./navigation";
 import { operationsSampleData } from "./data/operationsSampleData";
 
@@ -73,6 +75,9 @@ function ProtectedLayout() {
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/users" element={<StaffPermissionsPage />} />
+          <Route path="/roles-permissions" element={<StaffPermissionsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/coming-soon/:feature" element={<ComingSoonPage pageName={activePage} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

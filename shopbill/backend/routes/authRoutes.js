@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import db from "../config/database.js";
+import { authenticateToken, requireAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const router = express.Router();
   REGISTER
 */
 
-router.post("/register", async (req, res) => {
+router.post("/register", authenticateToken, async (req, res) => {
 
   try {
 
@@ -19,7 +20,14 @@ router.post("/register", async (req, res) => {
       name,
       email,
       password,
+      role = "staff",
     } = req.body;
+
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({
+        message: "Only admin can create staff accounts",
+      });
+    }
 
     if (
       !name ||
@@ -29,6 +37,13 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({
         message:
           "Name, email and password are required",
+      });
+    }
+
+    const allowedRoles = ["admin", "cashier", "inventory", "staff"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({
+        message: "Invalid role selected",
       });
     }
 
@@ -53,13 +68,14 @@ router.post("/register", async (req, res) => {
     const result = db
       .prepare(`
         INSERT INTO users
-        (name, email, password)
-        VALUES (?, ?, ?)
+        (name, email, password, role)
+        VALUES (?, ?, ?, ?)
       `)
       .run(
         name,
         email,
-        hashedPassword
+        hashedPassword,
+        role
       );
 
     res.status(201).json({
@@ -83,6 +99,63 @@ router.post("/register", async (req, res) => {
 /*
   LOGIN
 */
+
+router.get("/me", authenticateToken, (req, res) => {
+  const user = db
+    .prepare(
+      "SELECT id, name, email, role FROM users WHERE id = ?"
+    )
+    .get(req.user.id);
+
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
+  res.json({
+    user,
+  });
+});
+
+router.get("/staff", authenticateToken, requireAdmin, (req, res) => {
+  const staff = db
+    .prepare(
+      "SELECT id, name, email, role FROM users ORDER BY id ASC"
+    )
+    .all();
+
+  res.json({
+    staff,
+  });
+});
+
+router.delete("/users/:id", authenticateToken, requireAdmin, (req, res) => {
+  const userId = Number(req.params.id);
+  const currentUser = req.user.id;
+
+  if (!userId || userId === currentUser) {
+    return res.status(400).json({
+      message: "You cannot delete your own account from this action.",
+    });
+  }
+
+  const user = db
+    .prepare("SELECT id, name, email FROM users WHERE id = ?")
+    .get(userId);
+
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
+  db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+
+  res.json({
+    message: `User ${user.name} deleted successfully`,
+  });
+});
 
 router.post("/login", async (req, res) => {
 
