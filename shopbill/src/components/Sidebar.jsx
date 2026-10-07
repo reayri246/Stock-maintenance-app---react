@@ -1,4 +1,5 @@
-import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getPageName, PAGE_PATHS } from "../navigation";
 
 import {
   LayoutDashboard,
@@ -24,9 +25,10 @@ import {
 function Sidebar({
   sidebarOpen,
   setSidebarOpen,
-  activePage,
-  setActivePage,
 }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const activePage = getPageName(pathname);
 
   const groups = [
     {
@@ -45,6 +47,14 @@ function Sidebar({
         {
           name: "POS",
           icon: ShoppingCart,
+        },
+        {
+          name: "New Bill",
+          icon: Receipt,
+        },
+        {
+          name: "Bills",
+          icon: FileText,
         },
       ],
     },
@@ -215,13 +225,8 @@ function Sidebar({
                   }
 
                   onClick={() => {
-
-                    setActivePage(
-                      item.name
-                    );
-
+                    navigate(PAGE_PATHS[item.name]);
                     setSidebarOpen(false);
-
                   }}
                 >
 

@@ -20,6 +20,7 @@ const dbPath = path.join(
   "shopbill.db"
 );
 
+
 const db = new Database(dbPath);
 
 db.pragma("foreign_keys = ON");
@@ -286,6 +287,137 @@ if (productCount === 0) {
     5
   );
 }
+
+const seedSampleData = db.transaction(() => {
+  const categoryNames = [
+    ["Grocery", "Everyday grocery items"],
+    ["Dairy", "Milk and chilled products"],
+    ["Snacks", "Packaged snacks and biscuits"],
+    ["Personal Care", "Personal care essentials"],
+  ];
+  const getCategory = db.prepare("SELECT id FROM categories WHERE name = ?");
+  const addCategory = db.prepare(
+    "INSERT OR IGNORE INTO categories (name, description, status) VALUES (?, ?, 'active')"
+  );
+
+  for (const [name, description] of categoryNames) {
+    addCategory.run(name, description);
+  }
+
+  const categories = Object.fromEntries(
+    [...categoryNames.map(([name]) => name), "Stationery"].map((name) => [
+      name,
+      getCategory.get(name).id,
+    ])
+  );
+
+  const supplierRows = [
+    ["Aarav Wholesale", "aarav.wholesale@example.com", "9876501001", "Central Market"],
+    ["Fresh Fields Supply", "fresh.fields@example.com", "9876501002", "North Market"],
+    ["Daily Needs Distributors", "daily.needs@example.com", "9876501003", "West Market"],
+  ];
+  const getSupplier = db.prepare("SELECT id FROM suppliers WHERE email = ?");
+  const addSupplier = db.prepare(
+    "INSERT INTO suppliers (name, phone, email, address) VALUES (?, ?, ?, ?)"
+  );
+
+  for (const [name, email, phone, address] of supplierRows) {
+    if (!getSupplier.get(email)) addSupplier.run(name, phone, email, address);
+  }
+
+  const suppliers = Object.fromEntries(
+    supplierRows.map(([, email]) => [email, getSupplier.get(email).id])
+  );
+
+  const customerRows = [
+    ["Aarav Stores", "9876502001", "aarav.stores@example.com", "Main Street"],
+    ["Meena Mart", "9876502002", "meena.mart@example.com", "Lake Road"],
+    ["Raza Wholesale", "9876502003", "raza.wholesale@example.com", "Market Road"],
+    ["Green Basket", "9876502004", "green.basket@example.com", "Park Avenue"],
+    ["Sree Traders", "9876502005", "sree.traders@example.com", "Station Road"],
+  ];
+  const getCustomer = db.prepare("SELECT id FROM customers WHERE email = ?");
+  const addCustomer = db.prepare(
+    "INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?)"
+  );
+
+  for (const [name, phone, email, address] of customerRows) {
+    if (!getCustomer.get(email)) addCustomer.run(name, phone, email, address);
+  }
+
+  const customers = Object.fromEntries(
+    customerRows.map(([, , email]) => [email, getCustomer.get(email).id])
+  );
+
+  const productRows = [
+    ["Full Cream Milk 1L", "DEMO-MILK-1L", "Dairy", supplierRows[1][1], 28, 36, 4, 8, "bottle", 5],
+    ["Basmati Rice 5kg", "DEMO-RICE-5KG", "Grocery", supplierRows[0][1], 260, 320, 24, 8, "bag", 5],
+    ["Cooking Oil 1L", "DEMO-OIL-1L", "Grocery", supplierRows[0][1], 130, 160, 5, 8, "bottle", 5],
+    ["Assorted Biscuits", "DEMO-BISCUIT", "Snacks", supplierRows[2][1], 18, 25, 7, 10, "pack", 5],
+    ["Bath Soap 100g", "DEMO-SOAP-100G", "Personal Care", supplierRows[2][1], 28, 40, 28, 10, "bar", 5],
+    ["Ruled Notebook", "DEMO-NOTEBOOK", "Stationery", supplierRows[0][1], 32, 55, 42, 12, "pcs", 5],
+  ];
+  const getProduct = db.prepare("SELECT id FROM products WHERE sku = ?");
+  const addProduct = db.prepare(`
+    INSERT INTO products
+      (name, sku, category_id, supplier_id, description, status, purchase_price, selling_price, stock, minimum_stock, unit, tax)
+    VALUES (?, ?, ?, ?, 'Sample inventory item', 'active', ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const [name, sku, category, supplierEmail, cost, price, stock, minimum, unit, tax] of productRows) {
+    if (!getProduct.get(sku)) {
+      addProduct.run(name, sku, categories[category], suppliers[supplierEmail], cost, price, stock, minimum, unit, tax);
+    }
+  }
+
+  const saleRows = [
+    ["DEMO-1001", customerRows[0][2], "cash", 6, [["DEMO-RICE-5KG", 2], ["DEMO-OIL-1L", 1]]],
+    ["DEMO-1002", customerRows[1][2], "upi", 4, [["DEMO-MILK-1L", 3], ["DEMO-BISCUIT", 4]]],
+    ["DEMO-1003", customerRows[2][2], "card", 2, [["DEMO-RICE-5KG", 1], ["DEMO-SOAP-100G", 5]]],
+    ["DEMO-1004", customerRows[3][2], "upi", 1, [["DEMO-OIL-1L", 2], ["DEMO-BISCUIT", 3]]],
+    ["DEMO-1005", customerRows[4][2], "cash", 0, [["DEMO-NOTEBOOK", 6], ["DEMO-SOAP-100G", 2]]],
+  ];
+  const getSale = db.prepare("SELECT id FROM sales WHERE invoice_number = ?");
+  const addSale = db.prepare(`
+    INSERT INTO sales (invoice_number, customer_id, subtotal, total, payment_method, created_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now', ?))
+  `);
+  const getProductDetails = db.prepare("SELECT id, selling_price FROM products WHERE sku = ?");
+  const addSaleItem = db.prepare(
+    "INSERT INTO sale_items (sale_id, product_id, quantity, price, total) VALUES (?, ?, ?, ?, ?)"
+  );
+
+  for (const [invoice, customerEmail, payment, daysAgo, items] of saleRows) {
+    if (getSale.get(invoice)) continue;
+
+    const saleItems = items.map(([sku, quantity]) => {
+      const product = getProductDetails.get(sku);
+      return { ...product, quantity, total: product.selling_price * quantity };
+    });
+    const total = saleItems.reduce((sum, item) => sum + item.total, 0);
+    const sale = addSale.run(invoice, customers[customerEmail], total, total, payment, `-${daysAgo} days`);
+
+    for (const item of saleItems) {
+      addSaleItem.run(sale.lastInsertRowid, item.id, item.quantity, item.selling_price, item.total);
+    }
+  }
+
+  const expenseRows = [
+    ["Shop rent", 18000, "Rent", "Demo record: monthly shop rent"],
+    ["Electricity bill", 2450, "Utilities", "Demo record: monthly electricity"],
+    ["Local delivery", 780, "Transport", "Demo record: local delivery costs"],
+  ];
+  const getExpense = db.prepare("SELECT id FROM expenses WHERE title = ? AND description = ?");
+  const addExpense = db.prepare(
+    "INSERT INTO expenses (title, amount, category, description) VALUES (?, ?, ?, ?)"
+  );
+
+  for (const expense of expenseRows) {
+    if (!getExpense.get(expense[0], expense[3])) addExpense.run(...expense);
+  }
+});
+
+seedSampleData();
 
 console.log("Database initialized");
 

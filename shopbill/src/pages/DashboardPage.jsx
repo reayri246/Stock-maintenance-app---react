@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getDashboardData } from "../api/dashboard";
 import MetricCard from "../components/MetricCard";
 import QuickActions from "../components/QuickActions";
@@ -16,6 +16,7 @@ function DashboardPage() {
     stockValue: 0,
     recentSales: [],
     lowStockProducts: [],
+    salesByDay: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -92,9 +93,9 @@ function DashboardPage() {
           </section>
 
           <div className="dashboard-grid">
-            <SalesOverview />
-            <LowStock />
-            <RecentTransactions />
+            <SalesOverview salesByDay={stats.salesByDay || []} />
+            <LowStock products={stats.lowStockProducts || []} />
+            <RecentTransactions sales={stats.recentSales || []} />
           </div>
 
           <FooterStats />
